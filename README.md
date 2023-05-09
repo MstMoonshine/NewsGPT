@@ -1,6 +1,6 @@
 # NewsGPT
 
-Use ChatGPT to summarize top stories and comments from ![Hacker News](news.ycombinator.com).
+Use ChatGPT to summarize top stories and comments from [Hacker News](news.ycombinator.com).
 
 ---
 
