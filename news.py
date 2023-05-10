@@ -3,6 +3,7 @@ import json
 from pprint import pprint
 from bs4 import BeautifulSoup
 import datetime
+import traceback
 from gpt import *
 
 def get_top_stories(num=10):
@@ -17,6 +18,13 @@ def get_item_content(item_id):
     data_json = json.loads(response.read())
     return data_json
 
+def html2text(html):
+    if not html:
+        return None
+    soup = BeautifulSoup(html, 'html.parser')
+    text = soup.get_text("\n")
+    return text
+
 def get_story_comments(story):
     comments = []
     kids = story.get('kids')
@@ -29,8 +37,7 @@ def get_story_comments(story):
         html_text = kid_data.get('text')
         if not html_text:
             continue
-        soup = BeautifulSoup(html_text, 'html.parser')
-        text = soup.get_text("\n")
+        text = html2text(html_text)
         comments += [text]
     return comments
 
@@ -43,23 +50,24 @@ def get_story_webpage_content(story_url, char_limit=10000):
         'Accept-Language': 'en-US,en;q=0.8',
         'Connection': 'keep-alive',
     }
-    req = Request(url, headers)
-
+    req = Request(story_url, headers)
     try:
-        response = urlopen(req)
+        response = urlopen(req, data=bytes(json.dumps(headers), encoding="utf-8"))
+        print(req, response)
         html = response.read()
         soup = BeautifulSoup(html, 'html.parser')
         text = soup.get_text(' ', strip=True)[:char_limit]
         return text
-    except:
+    except Exception as E:
         print(f"Error opening the URL(story_id={id}, url={url})")
+        # traceback.print_exc()
         return None
 
 # main
 
 if __name__ == '__main__':
     # get top stories
-    stories = get_top_stories(30)
+    stories = get_top_stories(10)
 
     # get webpage contents and comments of the stories
     for id in stories:
@@ -72,7 +80,11 @@ if __name__ == '__main__':
         unix_time = story.get('time')
         time = datetime.datetime.fromtimestamp(unix_time)
 
-        web_content = get_story_webpage_content(url)
+        if not url: # For Ask HN, Show HN, etc.
+            web_content = html2text(story.get('text'))
+        else: # For other web pages
+            web_content = get_story_webpage_content(url)
+
         comments = get_story_comments(story)
 
         gpt_response = gpt_summarize_webpage(web_content)
