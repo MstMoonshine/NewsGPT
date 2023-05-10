@@ -3,12 +3,7 @@ import json
 from pprint import pprint
 from bs4 import BeautifulSoup
 import datetime
-import openai
-import os
-
-openai.api_base = os.getenv("OPENAI_API_BASE")
-openai.organization = os.getenv("OPENAI_ORG")
-openai.api_key = os.getenv("OPENAI_API_KEY")
+from gpt import *
 
 def get_top_stories(num=10):
     url = "https://hacker-news.firebaseio.com/v0/topstories.json"
@@ -17,7 +12,7 @@ def get_top_stories(num=10):
     return data_json[:num]
 
 def get_item_content(item_id):
-    url = "https://hacker-news.firebaseio.com/v0/item/%d.json" % item_id 
+    url = "https://hacker-news.firebaseio.com/v0/item/%d.json" % item_id
     response = urlopen(url)
     data_json = json.loads(response.read())
     return data_json
@@ -51,7 +46,7 @@ def get_story_webpage_content(story_url, char_limit=10000):
     req = Request(url, headers)
 
     try:
-        response = urlopen(url)
+        response = urlopen(req)
         html = response.read()
         soup = BeautifulSoup(html, 'html.parser')
         text = soup.get_text(' ', strip=True)[:char_limit]
@@ -60,54 +55,11 @@ def get_story_webpage_content(story_url, char_limit=10000):
         print(f"Error opening the URL(story_id={id}, url={url})")
         return None
 
-def gpt_summarize_webpage(content):
-    if not content:
-        return None
-    system_prompt = "You a an assistant who helps me read the news."
-    prompt = "The following contents are (a part of) a webpage. Please summarize it in within 150 words. If the contents are not human-readable texts, describe what kind of content it is.\n" + content
-    messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt},
-    ]
-
-    try:
-        response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=messages
-        )
-    except:
-        response = None
-    return response
-
-def gpt_summarize_comments(comments):
-    if len(comments) == 0:
-        return None
-
-    system_prompt = "You a an assistant who helps me read the comments on Hacker News."
-    prompt = "The following is a list of comments from Hacker News. Categorize the comments and summarize the main point of each category. Less than 100 words for each category. List the categories as bullet points in markdown format.\n"
-    for (i, comment) in enumerate(comments):
-        prompt += f"Comment {i}: {comment}\n"
-
-    messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt},
-    ]
-
-    try:
-        response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=messages
-        )
-    except:
-        response = None
-    return response
-
 # main
 
 if __name__ == '__main__':
-
     # get top stories
-    stories = get_top_stories(20)
+    stories = get_top_stories(30)
 
     # get webpage contents and comments of the stories
     for id in stories:
