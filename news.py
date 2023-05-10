@@ -61,6 +61,8 @@ def get_story_webpage_content(story_url, char_limit=10000):
         return None
 
 def gpt_summarize_webpage(content):
+    if not content:
+        return None
     system_prompt = "You a an assistant who helps me read the news."
     prompt = "The following contents are (a part of) a webpage. Please summarize it in within 150 words. If the contents are not human-readable texts, describe what kind of content it is.\n" + content
     messages = [
@@ -74,16 +76,15 @@ def gpt_summarize_webpage(content):
                 messages=messages
         )
     except:
-        response = "Response Error"
+        response = None
     return response
 
 def gpt_summarize_comments(comments):
     if len(comments) == 0:
-        response = "No comments currently."
-        return response
+        return None
 
     system_prompt = "You a an assistant who helps me read the comments on Hacker News."
-    prompt = "The following is a list of comments from Hacker News. Categorize the comments and summarize the main point of each category. Less than 50 words for each category.\n"
+    prompt = "The following is a list of comments from Hacker News. Categorize the comments and summarize the main point of each category. Less than 100 words for each category. List the categories as bullet points in markdown format.\n"
     for (i, comment) in enumerate(comments):
         prompt += f"Comment {i}: {comment}\n"
 
@@ -98,7 +99,7 @@ def gpt_summarize_comments(comments):
                 messages=messages
         )
     except:
-        response = "Response Error"
+        response = None
     return response
 
 # main
@@ -122,22 +123,23 @@ if __name__ == '__main__':
         web_content = get_story_webpage_content(url)
         comments = get_story_comments(story)
 
-        if (web_content):
-            gpt_response = gpt_summarize_webpage(web_content)
-        else:
-            gpt_response = "Null content"
-
+        gpt_response = gpt_summarize_webpage(web_content)
         comment_gpt_response = gpt_summarize_comments(comments)
 
-        print("=" * 20)
-        print(f"Title: {title}")
+        print(f"## Title: {title}")
         print(f"By: {author}")
         print(f"Date: {time}")
         print(f"URL: {url}")
         print(f"HN Score: {score}")
-        print("gpt response:")
-        print(gpt_response)
-        print("comments summarized by GPT:")
-        print(comment_gpt_response)
-        print("=" * 20)
+        print("\nGPT Summary:\n")
+        if gpt_response:
+            print(gpt_response["choices"][0]["message"]["content"])
+        else:
+            print("\nError\n")
+        print("\nComments Summary:\n")
+        if comment_gpt_response:
+            print(comment_gpt_response["choices"][0]["message"]["content"])
+        else:
+            print("\nError\n")
+        print("---" * 3)
 
